@@ -259,7 +259,7 @@ def iniciar_ngrok():
         nest_asyncio.apply()
         
         # Verificar se authtoken está configurado
-        authtoken = os.getenv('NGROK_AUTHTOKEN')
+        authtoken = settings.ngrok_auth_token
         if authtoken:
             ngrok.set_auth_token(authtoken)
         
