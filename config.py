@@ -29,6 +29,9 @@ class Settings(BaseSettings):
     # OpenAI API
     openai_api_key: str = ""
     openai_model: str = "gpt-4"
+    
+    # Ngrok settings
+    ngrok_auth_token: str = ""
 
     # CORS settings
     cors_origins: list = ["*"]
