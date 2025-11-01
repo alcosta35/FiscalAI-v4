@@ -202,7 +202,7 @@ Seja objetivo, claro e mostre os dados de forma organizada."""
     def _criar_ferramentas(self):
         """Cria as ferramentas para o agente"""
         
-        def contar_notas() -> str:
+        def contar_notas(dummy: str = "") -> str:
             """Retorna estatísticas sobre os arquivos carregados"""
             print(f"   🔍 Tool: contar_notas()")
             
@@ -517,7 +517,7 @@ Colunas do CFOP ({len(self.df_cfop.columns)}):
                 traceback.print_exc()
                 return f"Erro ao buscar CFOP: {str(e)}"
         
-        def validar_todas_notas() -> str:
+        def validar_todas_notas(dummy: str = "") -> str:
             """Valida CFOP de todas as notas e retorna um resumo"""
             print(f"   🔍 Tool: validar_todas_notas()")
             try:
