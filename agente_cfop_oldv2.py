@@ -867,10 +867,6 @@ Colunas do CFOP ({len(self.df_cfop.columns)}):
             """Analisa e retorna os CFOPs mais utilizados nas notas fiscais"""
             print(f"   🔍 Tool: analisar_cfops_mais_usados(limite={limite})")
             try:
-                # Handle empty string
-                if not limite or limite.strip() == "":
-                    limite = "10"
-                    
                 n = int(limite)
                 
                 # Contar CFOPs nos itens
@@ -884,14 +880,9 @@ Colunas do CFOP ({len(self.df_cfop.columns)}):
                 for idx, (cfop, count) in enumerate(cfop_counts.head(n).items(), 1):
                     percentual = (count / len(self.df_itens)) * 100
                     
-                    # Buscar descrição do CFOP inline
-                    cfop_formatado = self._formatar_cfop_para_busca(str(cfop))
-                    cfop_info = self.df_cfop[self.df_cfop['CFOP'].astype(str) == cfop_formatado]
-                    
-                    if not cfop_info.empty:
-                        descricao = cfop_info.iloc[0].get('DESCRIÇÃO', 'Descrição não encontrada')
-                    else:
-                        descricao = 'Descrição não encontrada na tabela'
+                    # Buscar descrição do CFOP
+                    cfop_info = self._buscar_cfop_tabela(str(cfop))
+                    descricao = cfop_info.get('DESCRIÇÃO', 'Descrição não encontrada')
                     
                     resultado += f"{idx}. CFOP {cfop}\n"
                     resultado += f"   📦 Quantidade: {count} itens ({percentual:.1f}%)\n"
@@ -902,8 +893,6 @@ Colunas do CFOP ({len(self.df_cfop.columns)}):
                 
             except Exception as e:
                 print(f"   ❌ Erro: {e}")
-                import traceback
-                traceback.print_exc()
                 return f"Erro ao analisar CFOPs: {str(e)}"
         
         def analisar_distribuicao_por_uf(dummy: str = "") -> str:
@@ -931,18 +920,12 @@ Colunas do CFOP ({len(self.df_cfop.columns)}):
                 
             except Exception as e:
                 print(f"   ❌ Erro: {e}")
-                import traceback
-                traceback.print_exc()
                 return f"Erro ao analisar distribuição por UF: {str(e)}"
         
         def analisar_natureza_operacao(limite: str = "10") -> str:
             """Analisa as naturezas de operação mais comuns"""
             print(f"   🔍 Tool: analisar_natureza_operacao(limite={limite})")
             try:
-                # Handle empty string
-                if not limite or limite.strip() == "":
-                    limite = "10"
-                    
                 n = int(limite)
                 
                 naturezas = self.df_cabecalho['NATUREZA DA OPERAÇÃO'].value_counts()
@@ -961,8 +944,6 @@ Colunas do CFOP ({len(self.df_cfop.columns)}):
                 
             except Exception as e:
                 print(f"   ❌ Erro: {e}")
-                import traceback
-                traceback.print_exc()
                 return f"Erro ao analisar naturezas: {str(e)}"
         
         def calcular_estatisticas_valores(dummy: str = "") -> str:
@@ -986,8 +967,6 @@ Colunas do CFOP ({len(self.df_cfop.columns)}):
                 
             except Exception as e:
                 print(f"   ❌ Erro: {e}")
-                import traceback
-                traceback.print_exc()
                 return f"Erro ao calcular estatísticas: {str(e)}"
         
         # LISTA DE FERRAMENTAS
