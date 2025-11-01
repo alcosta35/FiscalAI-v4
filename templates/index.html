@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FiscalAI - Upload de Arquivos</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div class="header-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+            </div>
+            <h1>Carregar Notas Fiscais no Banco de Dados</h1>
+            <p>Processe e indexe os dados das suas Notas Fiscais para busca avançada</p>
+        </div>
+
+        <!-- Card Principal -->
+        <div class="card fade-in">
+            <!-- Info Box -->
+            <div class="info-box">
+                <div class="info-icon">i</div>
+                <div class="info-content">
+                    <h3>Informações do Processamento:</h3>
+                    <p>O sistema irá processar todos os arquivos CSV e criar índices para busca avançada. 
+                       Você precisa fazer upload dos 3 arquivos antes de inicializar o sistema.</p>
+                </div>
+            </div>
+
+            <!-- Alert de Status -->
+            <div id="alertContainer"></div>
+
+            <!-- Upload Areas -->
+            <div class="form-group">
+                <label class="form-label">📊 Arquivo de Cabeçalho (202401_NFs_Cabecalho.csv)</label>
+                <div class="upload-area" id="uploadCabecalho" onclick="document.getElementById('fileCabecalho').click()">
+                    <div class="upload-icon" id="iconCabecalho">📄</div>
+                    <p id="textCabecalho">Clique para selecionar o arquivo</p>
+                </div>
+                <input type="file" id="fileCabecalho" accept=".csv" onchange="handleFileUpload('cabecalho', this)">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">📦 Arquivo de Itens (202401_NFs_Itens.csv)</label>
+                <div class="upload-area" id="uploadItens" onclick="document.getElementById('fileItens').click()">
+                    <div class="upload-icon" id="iconItens">📄</div>
+                    <p id="textItens">Clique para selecionar o arquivo</p>
+                </div>
+                <input type="file" id="fileItens" accept=".csv" onchange="handleFileUpload('itens', this)">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">🔢 Arquivo CFOP (CFOP.csv)</label>
+                <div class="upload-area" id="uploadCfop" onclick="document.getElementById('fileCfop').click()">
+                    <div class="upload-icon" id="iconCfop">📄</div>
+                    <p id="textCfop">Clique para selecionar o arquivo</p>
+                </div>
+                <input type="file" id="fileCfop" accept=".csv" onchange="handleFileUpload('cfop', this)">
+            </div>
+
+            <!-- Progress Bar -->
+            <div id="progressContainer" class="hidden">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+                </div>
+                <p style="text-align: center; color: var(--cinza-medio);" id="progressText">Carregando...</p>
+            </div>
+
+            <!-- Botões -->
+            <div class="btn-group">
+                <button class="btn btn-secondary" onclick="resetarSistema()">Resetar</button>
+                <button class="btn btn-primary" id="btnInicializar" onclick="inicializarSistema()" disabled>
+                    Iniciar Processamento
+                </button>
+            </div>
+        </div>
+
+        <!-- Navigation após inicialização -->
+        <div id="navContainer" class="hidden">
+            <div class="nav fade-in" style="margin-top: 30px;">
+                <a href="/estatisticas" class="nav-item">📊 Estatísticas</a>
+                <a href="/chat" class="nav-item">💬 Chat IA</a>
+                <a href="/validacao" class="nav-item">✓ Validação CFOP</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Estado dos arquivos
+        let filesUploaded = {
+            cabecalho: false,
+            itens: false,
+            cfop: false
+        };
+
+        // Verificar status ao carregar
+        window.addEventListener('load', async () => {
+            await checkStatus();
+        });
+
+        async function checkStatus() {
+            try {
+                const response = await fetch('/api/status-arquivos');
+                const data = await response.json();
+                
+                filesUploaded = data.arquivos;
+                
+                // Atualizar UI
+                updateUploadStatus('cabecalho', filesUploaded.cabecalho);
+                updateUploadStatus('itens', filesUploaded.itens);
+                updateUploadStatus('cfop', filesUploaded.cfop);
+                
+                // Se sistema já inicializado, mostrar navegação
+                if (data.agente_inicializado) {
+                    document.getElementById('navContainer').classList.remove('hidden');
+                    showAlert('Sistema já inicializado! Navegue para as outras páginas.', 'success');
+                }
+            } catch (error) {
+                console.error('Erro ao verificar status:', error);
+            }
+        }
+
+        async function handleFileUpload(tipo, input) {
+            const file = input.files[0];
+            if (!file) return;
+
+            if (!file.name.endsWith('.csv')) {
+                showAlert('Apenas arquivos CSV são permitidos!', 'error');
+                return;
+            }
+
+            // Mostrar progress
+            document.getElementById('progressContainer').classList.remove('hidden');
+            document.getElementById('progressText').textContent = `Carregando ${tipo}...`;
+            
+            const formData = new FormData();
+            formData.append('arquivo', file);
+
+            try {
+                const response = await fetch(`/api/upload-csv?tipo=${tipo}`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    filesUploaded[tipo] = true;
+                    updateUploadStatus(tipo, true);
+                    showAlert(`✓ ${tipo} carregado com sucesso!`, 'success');
+                    
+                    // Animar progresso
+                    animateProgress();
+                } else {
+                    showAlert(`Erro: ${data.detail}`, 'error');
+                }
+            } catch (error) {
+                showAlert(`Erro ao carregar arquivo: ${error.message}`, 'error');
+            } finally {
+                document.getElementById('progressContainer').classList.add('hidden');
+            }
+
+            checkAllFilesUploaded();
+        }
+
+        function updateUploadStatus(tipo, uploaded) {
+            const uploadArea = document.getElementById(`upload${tipo.charAt(0).toUpperCase() + tipo.slice(1)}`);
+            const icon = document.getElementById(`icon${tipo.charAt(0).toUpperCase() + tipo.slice(1)}`);
+            const text = document.getElementById(`text${tipo.charAt(0).toUpperCase() + tipo.slice(1)}`);
+
+            if (uploaded) {
+                uploadArea.classList.add('active');
+                icon.textContent = '✓';
+                text.textContent = 'Arquivo carregado com sucesso!';
+            }
+        }
+
+        function checkAllFilesUploaded() {
+            const allUploaded = Object.values(filesUploaded).every(v => v === true);
+            document.getElementById('btnInicializar').disabled = !allUploaded;
+        }
+
+        async function inicializarSistema() {
+            const btn = document.getElementById('btnInicializar');
+            btn.disabled = true;
+            btn.textContent = 'Inicializando...';
+            
+            document.getElementById('progressContainer').classList.remove('hidden');
+            document.getElementById('progressText').textContent = 'Inicializando sistema...';
+
+            try {
+                const response = await fetch('/api/inicializar', {
+                    method: 'POST'
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    showAlert(`✓ Sistema inicializado! ${data.total_notas} notas, ${data.total_itens} itens.`, 'success');
+                    
+                    // Mostrar navegação
+                    document.getElementById('navContainer').classList.remove('hidden');
+                    
+                    btn.textContent = 'Sistema Inicializado ✓';
+                } else {
+                    showAlert(`Erro: ${data.detail}`, 'error');
+                    btn.disabled = false;
+                    btn.textContent = 'Iniciar Processamento';
+                }
+            } catch (error) {
+                showAlert(`Erro ao inicializar: ${error.message}`, 'error');
+                btn.disabled = false;
+                btn.textContent = 'Iniciar Processamento';
+            } finally {
+                document.getElementById('progressContainer').classList.add('hidden');
+            }
+        }
+
+        async function resetarSistema() {
+            if (!confirm('Tem certeza que deseja resetar? Todos os arquivos serão removidos.')) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/resetar', {
+                    method: 'POST'
+                });
+
+                if (response.ok) {
+                    filesUploaded = { cabecalho: false, itens: false, cfop: false };
+                    
+                    // Resetar UI
+                    ['cabecalho', 'itens', 'cfop'].forEach(tipo => {
+                        const uploadArea = document.getElementById(`upload${tipo.charAt(0).toUpperCase() + tipo.slice(1)}`);
+                        const icon = document.getElementById(`icon${tipo.charAt(0).toUpperCase() + tipo.slice(1)}`);
+                        const text = document.getElementById(`text${tipo.charAt(0).toUpperCase() + tipo.slice(1)}`);
+                        
+                        uploadArea.classList.remove('active');
+                        icon.textContent = '📄';
+                        text.textContent = 'Clique para selecionar o arquivo';
+                        
+                        document.getElementById(`file${tipo.charAt(0).toUpperCase() + tipo.slice(1)}`).value = '';
+                    });
+
+                    document.getElementById('btnInicializar').disabled = true;
+                    document.getElementById('navContainer').classList.add('hidden');
+                    
+                    showAlert('Sistema resetado com sucesso!', 'success');
+                } else {
+                    showAlert('Erro ao resetar sistema', 'error');
+                }
+            } catch (error) {
+                showAlert(`Erro: ${error.message}`, 'error');
+            }
+        }
+
+        function showAlert(message, type) {
+            const alertContainer = document.getElementById('alertContainer');
+            const alertClass = type === 'success' ? 'alert-success' : (type === 'error' ? 'alert-error' : 'alert-warning');
+            
+            alertContainer.innerHTML = `
+                <div class="alert ${alertClass} fade-in">
+                    ${message}
+                </div>
+            `;
+
+            setTimeout(() => {
+                alertContainer.innerHTML = '';
+            }, 5000);
+        }
+
+        function animateProgress() {
+            const progressFill = document.getElementById('progressFill');
+            let width = 0;
+            const interval = setInterval(() => {
+                if (width >= 100) {
+                    clearInterval(interval);
+                } else {
+                    width += 10;
+                    progressFill.style.width = width + '%';
+                }
+            }, 50);
+        }
+    </script>
+</body>
+</html>
