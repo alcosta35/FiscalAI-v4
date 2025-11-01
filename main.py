@@ -258,6 +258,11 @@ def iniciar_ngrok():
         # Permitir nested event loops no Colab
         nest_asyncio.apply()
         
+        # Verificar se authtoken está configurado
+        authtoken = os.getenv('NGROK_AUTHTOKEN')
+        if authtoken:
+            ngrok.set_auth_token(authtoken)
+        
         # Configurar ngrok
         ngrok_tunnel = ngrok.connect(8000)
         public_url = ngrok_tunnel.public_url
@@ -272,8 +277,29 @@ def iniciar_ngrok():
         return public_url
         
     except Exception as e:
-        print(f"⚠️ Erro ao iniciar ngrok: {e}")
-        print("💡 Certifique-se de que pyngrok está instalado: pip install pyngrok")
+        error_msg = str(e)
+        
+        # Verificar se é erro de autenticação
+        if "authentication failed" in error_msg or "authtoken" in error_msg:
+            print("\n" + "="*70)
+            print("🔑 NGROK REQUER AUTENTICAÇÃO")
+            print("="*70)
+            print("\n⚠️ O ngrok agora requer uma conta gratuita e authtoken.")
+            print("\n📋 PASSOS PARA CONFIGURAR:")
+            print("   1. Crie conta gratuita: https://dashboard.ngrok.com/signup")
+            print("   2. Copie seu authtoken: https://dashboard.ngrok.com/get-started/your-authtoken")
+            print("   3. No Colab, adicione ANTES de iniciar o servidor:")
+            print("\n      import os")
+            print("      os.environ['NGROK_AUTHTOKEN'] = 'seu-token-aqui'")
+            print("\n   4. Execute novamente")
+            print("\n💡 Ou configure diretamente no código:")
+            print("      from pyngrok import ngrok")
+            print("      ngrok.set_auth_token('seu-token-aqui')")
+            print("="*70 + "\n")
+        else:
+            print(f"\n⚠️ Erro ao iniciar ngrok: {error_msg}")
+            print("💡 Certifique-se de que pyngrok está instalado: pip install pyngrok\n")
+        
         return None
 
 if __name__ == "__main__":
