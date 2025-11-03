@@ -29,7 +29,7 @@ wheels/
 
 # Data files
 data/
-*.csv
+# *.csv
 *.xlsx
 *.xls
 
